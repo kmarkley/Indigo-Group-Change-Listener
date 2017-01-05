@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<MenuItems>
+	<MenuItem id="logTriggers">
+		<Name>Write Trigger Configurations to Log</Name>
+		<CallbackMethod>logTriggers</CallbackMethod>
+	</MenuItem>
+</MenuItems>

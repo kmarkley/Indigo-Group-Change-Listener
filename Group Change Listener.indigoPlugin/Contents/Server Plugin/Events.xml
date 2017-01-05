@@ -1,0 +1,27 @@
+<?xml version="1.4"?>
+<Events>
+	<Event type="custom" id="listenerGroup">
+		<Name>Listener Group</Name>
+		<ConfigUI>	
+			<Field id='label1' type='label' >
+				<Label>Select the Device(s) and/or Variable(s) to listen to for the Trigger:
+				</Label>
+			</Field>	
+			<Field id='triggerDevices' type='list' rows='12'>
+				<Label>Devices:</Label>
+				<List class="indigo.devices" />
+			</Field>
+			<Field id='triggerVariables' type='list' rows='12'>
+				<Label>Variables:</Label>
+				<List class="indigo.variables"/>
+			</Field>
+			<Field id='saveBool' type='checkbox'>
+			    <Label>Save to variable?:</Label>
+			</Field>
+			<Field id='saveVar' type='menu' visibleBindingId='saveBool'  visibleBindingValue='true' alwaysUseInDialogHeightCalc='true'>
+				<Label>Select Variable:</Label>
+				<List class="indigo.variables" />
+			</Field>
+		</ConfigUI>
+	</Event>	
+</Events>
