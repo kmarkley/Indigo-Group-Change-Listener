@@ -53,7 +53,9 @@ class Plugin(indigo.PluginBase):
                 errorsDict['saveVar'] = "Can't save to a variable being monitored"
         if len(errorsDict) > 0:
             return (False, valuesDict, errorsDict)
-        return (True, valuesDict)
+        else:
+            valuesDict['version'] = self.pluginVersion
+            return (True, valuesDict)
     
     ########################################
     # Trigger handlers
@@ -73,7 +75,8 @@ class Plugin(indigo.PluginBase):
         varList = []
         for varId in theProps.get('triggerVariables',[]):
             varList.append(int(varId))
-        self.triggersDict[trigger.id] = {'devs':devList, 'vars':varList, 'save':saveId}
+        ignore = theProps.get('ignoreStates',"").split()
+        self.triggersDict[trigger.id] = {'devs':devList, 'vars':varList, 'save':saveId, 'ignore':ignore}
     
     ########################################    
     def triggerStopProcessing(self, trigger):
@@ -83,9 +86,7 @@ class Plugin(indigo.PluginBase):
     
     ########################################    
     def updateTriggerVersion(self, trigger):
-        theProps = trigger.pluginProps
-        theProps['version'] = self.pluginVersion
-        trigger.replacePluginPropsOnServer(theProps)
+        self.logger.error('Trigger "%s" obsolete (edit/save to update)' % trigger.name)
     
     ########################################
     # Device or Variable updated
@@ -93,10 +94,12 @@ class Plugin(indigo.PluginBase):
     def deviceUpdated(self, oldDev, newDev):
         for tid in self.triggersDict:
             if newDev.id in self.triggersDict[tid]['devs']:
-                if newDev.states != oldDev.states:
+                if any( ( (newDev.states[key] != oldDev.states.get(key,None)) and 
+                        (key not in self.triggersDict[tid]['ignore']) )
+                        for key in newDev.states ):
                     self.logger.debug("deviceUpdated: "+newDev.name)
-                    self.saveTriggeringObject(tid, newDev.name)
                     indigo.trigger.execute(tid)
+                    self.saveTriggeringObject(tid, newDev.name)
     
     ########################################
     def variableUpdated(self, oldVar, newVar):
@@ -104,8 +107,8 @@ class Plugin(indigo.PluginBase):
             if newVar.id in self.triggersDict[tid]['vars']:
                 if newVar.value != oldVar.value:
                     self.logger.debug("variableUpdated: "+newVar.name)
-                    self.saveTriggeringObject(tid, newVar.name)
                     indigo.trigger.execute(tid)
+                    self.saveTriggeringObject(tid, newVar.name)
     
     ########################################
     def saveTriggeringObject(self, tid, name):
@@ -138,11 +141,17 @@ class Plugin(indigo.PluginBase):
                 self.logger.info("Save To: ".rjust(justCount)+var.name+" ("+str(var.id)+")")
             prefix = "Devices: ".rjust(justCount)
             for devId in theProps.get('triggerDevices',[]):
-                self.logger.info(prefix+indigo.devices[int(devId)].name+" ("+devId+")")
+                try:
+                    self.logger.info(prefix+indigo.devices[int(devId)].name+" ("+devId+")")
+                except:
+                    self.logger.error(prefix+devId+" (missing)")
                 prefix = "".rjust(justCount)
             prefix = "Variables: ".rjust(justCount)
             for varId in theProps.get('triggerVariables',[]):
-                self.logger.info(prefix+indigo.variables[int(varId)].name+" ("+varId+")")
+                try:
+                    self.logger.info(prefix+indigo.variables[int(varId)].name+" ("+varId+")")
+                except:
+                    self.logger.error(prefix+varId+" (missing)")
                 prefix = "".rjust(justCount)
             self.logger.info(separator)
         self.logger.info("")

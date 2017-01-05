@@ -11,6 +11,12 @@
 				<Label>Devices:</Label>
 				<List class="indigo.devices" />
 			</Field>
+			<Field id='ignoreStates' type='textfield'>
+			    <Label>Ignore States:</Label>
+			</Field>
+			<Field id="ignoreLabel1" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true">
+                <Label>Space-separated list of state id's to ignore. Helpful for devices with superfluous state changes.</Label>
+            </Field>
 			<Field id='triggerVariables' type='list' rows='12'>
 				<Label>Variables:</Label>
 				<List class="indigo.variables"/>
