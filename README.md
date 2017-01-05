@@ -1,4 +1,4 @@
-#Multi-Input Trigger
+#Group Change Listener
 This is a simple plugin that does exactly one thing:
 
 ***Creates triggers that fire when ANY of a selected group of Devices and/or Variables has ANY change.***
@@ -21,8 +21,8 @@ In the example above, I would first have to create a number of derivative variab
 
 ### How to Use
 1. Create a new trigger:  
-    Type: Subscribed Changes Trigger Event  
-    Event: Subscribed Changes Group
+    Type: Group Change Listener Event  
+    Event: Listener Group
 2. Select zero or more Devices to monitor.
 3. Select zero or more Variables to monitor.
 4. Optionally check the box and provide a variable to record the most recent triggering device/variable.
