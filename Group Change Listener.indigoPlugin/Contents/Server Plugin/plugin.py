@@ -98,8 +98,8 @@ class Plugin(indigo.PluginBase):
                         (key not in self.triggersDict[tid]['ignore']) )
                         for key in newDev.states ):
                     self.logger.debug("deviceUpdated: "+newDev.name)
-                    indigo.trigger.execute(tid)
                     self.saveTriggeringObject(tid, newDev.name)
+                    indigo.trigger.execute(tid)
     
     ########################################
     def variableUpdated(self, oldVar, newVar):
@@ -107,8 +107,8 @@ class Plugin(indigo.PluginBase):
             if newVar.id in self.triggersDict[tid]['vars']:
                 if newVar.value != oldVar.value:
                     self.logger.debug("variableUpdated: "+newVar.name)
-                    indigo.trigger.execute(tid)
                     self.saveTriggeringObject(tid, newVar.name)
+                    indigo.trigger.execute(tid)
     
     ########################################
     def saveTriggeringObject(self, tid, name):
@@ -134,24 +134,31 @@ class Plugin(indigo.PluginBase):
         self.logger.info(separator)
         for trigger in myTriggers:
             theProps = trigger.pluginProps
-            self.logger.info("Trigger: ".rjust(justCount)+trigger.name+" ("+str(trigger.id)+")")
+            self.logger.info("Trigger: ".rjust(justCount)+trigger.name+" ["+str(trigger.id)+"]")
             self.logger.info("Enabled: ".rjust(justCount)+str(trigger.enabled))
             if theProps.get('saveBool',False):
-                var = indigo.variables[theProps.get('saveVar',"")]
-                self.logger.info("Save To: ".rjust(justCount)+var.name+" ("+str(var.id)+")")
+                try:
+                    var = indigo.variables[int(theProps.get('saveVar',""))]
+                    self.logger.info("Save To: ".rjust(justCount)+var.name+" ["+str(var.id)+"]")
+                except:
+                    self.logger.error("Save To: ".rjust(justCount)+"["+theProps.get('saveVar',"")+"] (missing)")
             prefix = "Devices: ".rjust(justCount)
             for devId in theProps.get('triggerDevices',[]):
                 try:
-                    self.logger.info(prefix+indigo.devices[int(devId)].name+" ("+devId+")")
+                    self.logger.info(prefix+indigo.devices[int(devId)].name+" ["+devId+"]")
                 except:
-                    self.logger.error(prefix+devId+" (missing)")
+                    self.logger.error(prefix+"["+devId+"] (missing)")
                 prefix = "".rjust(justCount)
             prefix = "Variables: ".rjust(justCount)
             for varId in theProps.get('triggerVariables',[]):
                 try:
-                    self.logger.info(prefix+indigo.variables[int(varId)].name+" ("+varId+")")
+                    self.logger.info(prefix+indigo.variables[int(varId)].name+" ["+varId+"]")
                 except:
-                    self.logger.error(prefix+varId+" (missing)")
+                    self.logger.error(prefix+"["+varId+"] (missing)")
+                prefix = "".rjust(justCount)
+            prefix = "Ignored: ".rjust(justCount)
+            for ignore in theProps.get('ignoreStates',"").split():
+                self.logger.info(prefix+ignore)
                 prefix = "".rjust(justCount)
             self.logger.info(separator)
         self.logger.info("")
