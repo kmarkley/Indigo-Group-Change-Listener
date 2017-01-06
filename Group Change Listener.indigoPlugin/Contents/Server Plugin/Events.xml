@@ -7,22 +7,33 @@
 				<Label>Select the Device(s) and/or Variable(s) to listen to for the Trigger:
 				</Label>
 			</Field>	
+            <Field id="separator1" type="separator"/>
 			<Field id='triggerDevices' type='list' rows='12'>
 				<Label>Devices:</Label>
 				<List class="indigo.devices" />
 			</Field>
-			<Field id='ignoreStates' type='textfield'>
-			    <Label>Ignore States:</Label>
-			</Field>
-			<Field id="ignoreLabel1" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true">
-                <Label>Space-separated list of state id's to ignore. Helpful for devices with superfluous state changes.</Label>
+	        <Field id="filterLogic" type="menu">
+                <Label>Filter Logic:</Label>
+                <List>
+                    <Option value="Ignore">Ignore All</Option>
+                    <Option value="Require">Require One</Option>
+                </List>
             </Field>
+			<Field id='stateFilter' type='textfield'>
+			    <Label>State Filter:</Label>
+			</Field>
+			<Field id="stateFilterLabel" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true">
+                <Label>Space-separated list of state ID's. Applies to all devices.</Label>
+            </Field>
+            <Field id="separator2" type="separator"/>
 			<Field id='triggerVariables' type='list' rows='12'>
 				<Label>Variables:</Label>
 				<List class="indigo.variables"/>
 			</Field>
+            <Field id="separator3" type="separator"/>
 			<Field id='saveBool' type='checkbox'>
 			    <Label>Save to variable?:</Label>
+			    <Description>Optionally save the name of the triggering device/variable to a variable.   </Description>
 			</Field>
 			<Field id='saveVar' type='menu' visibleBindingId='saveBool'  visibleBindingValue='true' alwaysUseInDialogHeightCalc='true'>
 				<Label>Select Variable:</Label>

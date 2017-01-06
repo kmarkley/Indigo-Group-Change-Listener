@@ -29,8 +29,11 @@ This plugin solves this by providing a less sophisticated, and therefore somewha
     Type: Group Change Listener Event  
     Event: Listener Group
 2. Select zero or more Devices to monitor.
-3. Optionally list device states to ignore.  
-    (Some devices report superfluous state changes e.g. a timestamp of last communication.)
+3. Optionally filter device states:   
+    a. Filter Logic:  
+    Ignore All: to ignore superfluous state changes.  
+    Require One: to only consider changes from subset of states.
+    b. State Filter: a space-separated list if state ID's.
 3. Select zero or more Variables to monitor.
 4. Optionally check the box and provide a variable to record the most recent triggering device/variable.
 5. Configure the rest of the trigger as usual.

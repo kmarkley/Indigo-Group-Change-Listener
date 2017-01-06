@@ -46,9 +46,13 @@ class Plugin(indigo.PluginBase):
     def validateEventConfigUi(self, valuesDict, typeId, triggerId):
         self.logger.debug("validateTriggerConfigUi")
         errorsDict = indigo.Dict()
+        if (valuesDict.get('stateFilter',"")) and (not valuesDict.get('filterLogic',False)):
+            errorsDict['filterLogic'] = "Required when state filters are defined"
+        elif (not valuesDict.get('stateFilter',"")) and (valuesDict.get('filterLogic',"") == "Require"):
+            errorsDict['stateFilter'] = "Required when filter logic is 'Require One'"
         if valuesDict.get('saveBool',False):
             if not valuesDict.get('saveVar',""):
-                errorsDict['saveVar'] = "Required when 'Save to variable?' checked"
+                errorsDict['saveVar'] = "Required when 'Save to variable?' is checked"
             elif valuesDict.get('saveVar') in valuesDict.get('triggerVariables',[]):
                 errorsDict['saveVar'] = "Can't save to a variable being monitored"
         if len(errorsDict) > 0:
@@ -75,8 +79,9 @@ class Plugin(indigo.PluginBase):
         varList = []
         for varId in theProps.get('triggerVariables',[]):
             varList.append(int(varId))
-        ignore = theProps.get('ignoreStates',"").split()
-        self.triggersDict[trigger.id] = {'devs':devList, 'vars':varList, 'save':saveId, 'ignore':ignore}
+        filter = theProps.get('stateFilter',"").split()
+        logic = theProps.get('filterLogic',"Ignore")
+        self.triggersDict[trigger.id] = {'devs':devList, 'vars':varList, 'save':saveId, 'filter':filter, 'logic':logic}
     
     ########################################    
     def triggerStopProcessing(self, trigger):
@@ -94,12 +99,16 @@ class Plugin(indigo.PluginBase):
     def deviceUpdated(self, oldDev, newDev):
         for tid in self.triggersDict:
             if newDev.id in self.triggersDict[tid]['devs']:
-                if any( ( (newDev.states[key] != oldDev.states.get(key,None)) and 
-                        (key not in self.triggersDict[tid]['ignore']) )
-                        for key in newDev.states ):
-                    self.logger.debug("deviceUpdated: "+newDev.name)
-                    self.saveTriggeringObject(tid, newDev.name)
-                    indigo.trigger.execute(tid)
+                for key in newDev.states:
+                    if newDev.states[key] != oldDev.states.get(key,None):
+                        if (self.triggersDict[tid]['logic'] == "Ignore") and (key not in self.triggersDict[tid]['filter']): fireTrigger = True
+                        elif (self.triggersDict[tid]['logic'] == "Require") and (key in self.triggersDict[tid]['filter']): fireTrigger = True
+                        else: fireTrigger = False
+                        if  fireTrigger:
+                            self.logger.debug("deviceUpdated: "+newDev.name)
+                            self.saveTriggeringObject(tid, newDev.name)
+                            indigo.trigger.execute(tid)
+                            break
     
     ########################################
     def variableUpdated(self, oldVar, newVar):
@@ -124,7 +133,7 @@ class Plugin(indigo.PluginBase):
     ########################################        
     def logTriggers(self):
         separator = "".rjust(50,'-')
-        justCount = 12
+        justCount = 11
         myTriggers = indigo.triggers.iter('self')
         if not myTriggers:
             self.logger.info("No triggers configured")
@@ -156,9 +165,11 @@ class Plugin(indigo.PluginBase):
                 except:
                     self.logger.error(prefix+"["+varId+"] (missing)")
                 prefix = "".rjust(justCount)
-            prefix = "Ignored: ".rjust(justCount)
-            for ignore in theProps.get('ignoreStates',"").split():
-                self.logger.info(prefix+ignore)
+            if theProps.get('stateFilter',False):
+                self.logger.info("Logic: ".rjust(justCount)+theProps.get('filterLogic',""))
+            prefix = "Filter: ".rjust(justCount)
+            for state in theProps.get('stateFilter',"").split():
+                self.logger.info(prefix+state)
                 prefix = "".rjust(justCount)
             self.logger.info(separator)
         self.logger.info("")
