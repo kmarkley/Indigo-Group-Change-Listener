@@ -7,6 +7,18 @@ import indigo
 
 # Note the "indigo" module is automatically imported and made available inside
 # our global name space by the host process.
+###############################################################################
+# globals
+
+# used to warn user if triggers need updating on plugin upgrade
+eventPropsKeys = [
+    'triggerDevices',
+    'filterLogic',
+    'stateFilter',
+    'triggerVariables',
+    'saveBool',
+    'saveVar',
+    ]
 
 ################################################################################
 class Plugin(indigo.PluginBase):
@@ -33,6 +45,7 @@ class Plugin(indigo.PluginBase):
     ########################################
     def shutdown(self):
         self.logger.debug("shutdown")
+        self.pluginPrefs['showDebugInfo'] = self.debug
     
     ########################################
     def closedPrefsConfigUi (self, valuesDict, userCancelled):
@@ -91,7 +104,10 @@ class Plugin(indigo.PluginBase):
     
     ########################################    
     def updateTriggerVersion(self, trigger):
-        self.logger.error('Trigger "%s" obsolete (edit/save to update)' % trigger.name)
+        for key in eventPropsKeys:
+            if key not in trigger.pluginProps:
+                self.logger.error('Trigger "%s" obsolete (edit/save to update)' % trigger.name)
+                break
     
     ########################################
     # Device or Variable updated
@@ -173,3 +189,13 @@ class Plugin(indigo.PluginBase):
                 prefix = "".rjust(justCount)
             self.logger.info(separator)
         self.logger.info("")
+    
+    ########################################        
+    def toggleDebug(self):
+        if self.debug:
+            self.logger.debug("Debug logging disabled")
+            self.debug = False
+        else:
+            self.debug = True
+            self.logger.debug("Debug logging enabled")
+    

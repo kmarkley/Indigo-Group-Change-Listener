@@ -4,4 +4,9 @@
 		<Name>Write Trigger Configurations to Log</Name>
 		<CallbackMethod>logTriggers</CallbackMethod>
 	</MenuItem>
+	<MenuItem id='debugDeparator' />
+    <MenuItem id='toggleDebug'>
+        <Name>Toggle Debugging</Name>
+		<CallbackMethod>toggleDebug</CallbackMethod>
+	</MenuItem>
 </MenuItems>
