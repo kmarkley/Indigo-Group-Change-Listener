@@ -93,8 +93,9 @@ class Plugin(indigo.PluginBase):
         for varId in theProps.get('triggerVariables',[]):
             varList.append(int(varId))
         filter = theProps.get('stateFilter',"").split()
-        logic = theProps.get('filterLogic',"Ignore")
-        self.triggersDict[trigger.id] = {'devs':devList, 'vars':varList, 'save':saveId, 'filter':filter, 'logic':logic}
+        logic  = theProps.get('filterLogic',"Ignore")
+        comm   = theProps.get('commEnabled',"False")
+        self.triggersDict[trigger.id] = {'devs':devList, 'vars':varList, 'save':saveId, 'filter':filter, 'logic':logic, 'comm':comm}
     
     ########################################    
     def triggerStopProcessing(self, trigger):
@@ -115,16 +116,22 @@ class Plugin(indigo.PluginBase):
     def deviceUpdated(self, oldDev, newDev):
         for tid in self.triggersDict:
             if newDev.id in self.triggersDict[tid]['devs']:
+                fireTrigger = False
                 for key in newDev.states:
                     if newDev.states[key] != oldDev.states.get(key,None):
-                        if (self.triggersDict[tid]['logic'] == "Ignore") and (key not in self.triggersDict[tid]['filter']): fireTrigger = True
-                        elif (self.triggersDict[tid]['logic'] == "Require") and (key in self.triggersDict[tid]['filter']): fireTrigger = True
-                        else: fireTrigger = False
-                        if  fireTrigger:
-                            self.logger.debug("deviceUpdated: "+newDev.name)
-                            self.saveTriggeringObject(tid, newDev.name)
-                            indigo.trigger.execute(tid)
+                        if (self.triggersDict[tid]['logic'] == "Ignore") and (key not in self.triggersDict[tid]['filter']):
+                            fireTrigger = True
                             break
+                        elif (self.triggersDict[tid]['logic'] == "Require") and (key in self.triggersDict[tid]['filter']):
+                            fireTrigger = True
+                            break
+                if newDev.enabled != oldDev.enabled:
+                    if self.triggersDict[tid]['comm']:
+                        fireTrigger = True
+                if  fireTrigger:
+                    self.logger.debug("deviceUpdated: "+newDev.name)
+                    self.saveTriggeringObject(tid, newDev.name)
+                    indigo.trigger.execute(tid)
     
     ########################################
     def variableUpdated(self, oldVar, newVar):
@@ -187,6 +194,8 @@ class Plugin(indigo.PluginBase):
             for state in theProps.get('stateFilter',"").split():
                 self.logger.info(prefix+state)
                 prefix = "".rjust(justCount)
+            if theProps.get('commEnabled',False):
+                self.logger.info("Comm: ".rjust(justCount)+"True")
             self.logger.info(separator)
         self.logger.info("")
     

@@ -25,6 +25,10 @@
 			<Field id="stateFilterLabel" type="label" fontColor="darkgray" fontSize="small" alignWithControl="true">
                 <Label>Space-separated list of state ID's. Applies to all devices.</Label>
             </Field>
+			<Field id='commEnabled' type='checkbox' defaultValue='false'>
+			    <Label>Comm Status:</Label>
+			    <Description>Should trigger fire if device's communication status is enabled/disabled?.   </Description>
+			</Field>
             <Field id="separator2" type="separator"/>
 			<Field id='triggerVariables' type='list' rows='12'>
 				<Label>Variables:</Label>
