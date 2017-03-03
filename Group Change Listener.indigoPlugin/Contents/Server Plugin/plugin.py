@@ -59,10 +59,11 @@ class Plugin(indigo.PluginBase):
     def validateEventConfigUi(self, valuesDict, typeId, triggerId):
         self.logger.debug("validateTriggerConfigUi")
         errorsDict = indigo.Dict()
-        if (valuesDict.get('stateFilter',"")) and (not valuesDict.get('filterLogic',False)):
-            errorsDict['filterLogic'] = "Required when state filters are defined"
-        elif (not valuesDict.get('stateFilter',"")) and (valuesDict.get('filterLogic',"") == "Require"):
-            errorsDict['stateFilter'] = "Required when filter logic is 'Require One'"
+        if valuesDict.get('advanced',True):
+            if (valuesDict.get('stateFilter',[])) and (not valuesDict.get('filterLogic',False)):
+                errorsDict['filterLogic'] = "Required when state filters are defined"
+            elif (not valuesDict.get('stateFilter',[])) and (valuesDict.get('filterLogic',"") == "Require"):
+                errorsDict['stateFilter'] = "Required when filter logic is 'Require One'"
         if valuesDict.get('saveBool',False):
             if not valuesDict.get('saveVar',""):
                 errorsDict['saveVar'] = "Required when 'Save to variable?' is checked"
@@ -92,10 +93,11 @@ class Plugin(indigo.PluginBase):
         varList = []
         for varId in theProps.get('triggerVariables',[]):
             varList.append(int(varId))
-        filter = theProps.get('stateFilter',"").split()
+        advanced = theProps.get('advanced',True)
+        filter = theProps.get('stateFilter',[])
         logic  = theProps.get('filterLogic',"Ignore")
         comm   = theProps.get('commEnabled',"False")
-        self.triggersDict[trigger.id] = {'devs':devList, 'vars':varList, 'save':saveId, 'filter':filter, 'logic':logic, 'comm':comm}
+        self.triggersDict[trigger.id] = {'devs':devList, 'vars':varList, 'save':saveId, 'advanced':advanced, 'filter':filter, 'logic':logic, 'comm':comm}
     
     ########################################    
     def triggerStopProcessing(self, trigger):
@@ -116,18 +118,22 @@ class Plugin(indigo.PluginBase):
     def deviceUpdated(self, oldDev, newDev):
         for tid in self.triggersDict:
             if newDev.id in self.triggersDict[tid]['devs']:
-                fireTrigger = False
-                for key in newDev.states:
-                    if newDev.states[key] != oldDev.states.get(key,None):
-                        if (self.triggersDict[tid]['logic'] == "Ignore") and (key not in self.triggersDict[tid]['filter']):
+                if not self.triggersDict[tid]['advanced']:
+                    fireTrigger = True
+                else:
+                    fireTrigger = False
+                    for key in newDev.states:
+                        if newDev.states[key] != oldDev.states.get(key,None):
+                            if (self.triggersDict[tid]['logic'] == "Ignore") and (key not in self.triggersDict[tid]['filter']):
+                                fireTrigger = True
+                                break
+                            elif (self.triggersDict[tid]['logic'] == "Require") and (key in self.triggersDict[tid]['filter']):
+                                fireTrigger = True
+                                break
+                    if newDev.enabled != oldDev.enabled:
+                        if self.triggersDict[tid]['comm']:
                             fireTrigger = True
-                            break
-                        elif (self.triggersDict[tid]['logic'] == "Require") and (key in self.triggersDict[tid]['filter']):
-                            fireTrigger = True
-                            break
-                if newDev.enabled != oldDev.enabled:
-                    if self.triggersDict[tid]['comm']:
-                        fireTrigger = True
+                
                 if  fireTrigger:
                     self.logger.debug("deviceUpdated: "+newDev.name)
                     self.saveTriggeringObject(tid, newDev.name)
@@ -188,10 +194,10 @@ class Plugin(indigo.PluginBase):
                 except:
                     self.logger.error(prefix+"["+varId+"] (missing)")
                 prefix = "".rjust(justCount)
-            if theProps.get('stateFilter',False):
+            if theProps.get('stateFilter',[]):
                 self.logger.info("Logic: ".rjust(justCount)+theProps.get('filterLogic',""))
             prefix = "Filter: ".rjust(justCount)
-            for state in theProps.get('stateFilter',"").split():
+            for state in theProps.get('stateFilter',[]):
                 self.logger.info(prefix+state)
                 prefix = "".rjust(justCount)
             if theProps.get('commEnabled',False):
@@ -208,3 +214,16 @@ class Plugin(indigo.PluginBase):
             self.debug = True
             self.logger.debug("Debug logging enabled")
     
+    #-------------------------------------------------------------------------------
+    # Callbacks
+    #-------------------------------------------------------------------------------
+    def getStateList(self, filter='none', valuesDict=None, typeId='', targetId=0):
+        stateList = []
+        for devId in valuesDict.get('triggerDevices',[]):
+            for state in indigo.devices[int(devId)].states:
+                stateList.append((state,state))
+        return list(set(stateList))
+    
+    #-------------------------------------------------------------------------------
+    def loadStates(self, valuesDict=None, typeId='', targetId=0):
+        pass
