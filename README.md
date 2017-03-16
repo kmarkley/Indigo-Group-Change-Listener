@@ -28,14 +28,14 @@ This plugin solves this by providing a less sophisticated, and therefore somewha
 1. Create a new trigger:  
     Type: Group Change Listener Event  
     Event: Listener Group
-2. Select zero or more Devices to monitor.
-3. Optionally set advanced options:   
+2. Select zero or more Variables to monitor.
+3. Select zero or more Devices to monitor.
+4. Optionally set advanced options:   
     * Filter Logic:  
     	* Ignore All: to ignore superfluous state changes.  
     	* Require One: to only consider changes from subset of states.
     * State Filter: the states to filter on.
     * Fire on Status: Optionally also trigger on device enable/disable.
-4. Select zero or more Variables to monitor.
 5. Optionally check the box and provide a variable to record the most recent triggering device/variable.
 6. Configure the rest of the trigger as usual.
 

@@ -4,9 +4,14 @@
 		<Name>Listener Group</Name>
 		<ConfigUI>	
 			<Field id='label1' type='label' >
-				<Label>Select the Device(s) and/or Variable(s) to listen to for the Trigger:
+				<Label>Select the Variables(s) and/or Devices(s) to listen to for the Trigger:
 				</Label>
-			</Field>	
+			</Field>
+            <Field id='separator2' type='separator'/>
+			<Field id='triggerVariables' type='list' rows='12'>
+				<Label>Variables:</Label>
+				<List class='indigo.variables'/>
+			</Field>
             <Field id='separator1' type='separator'/>
 			<Field id='triggerDevices' type='list' rows='12'>
 				<Label>Devices:</Label>
@@ -38,11 +43,6 @@
 			<Field id='commEnabled' type='checkbox' defaultValue='false' visibleBindingId='advanced'  visibleBindingValue='true' alwaysUseInDialogHeightCalc='true'>
 			    <Label>Fire on Status:</Label>
 			    <Description>Also fire trigger when device's status is enabled/disabled?   </Description>
-			</Field>
-            <Field id='separator2' type='separator'/>
-			<Field id='triggerVariables' type='list' rows='12'>
-				<Label>Variables:</Label>
-				<List class='indigo.variables'/>
 			</Field>
             <Field id='separator3' type='separator'/>
 			<Field id='saveBool' type='checkbox'>
