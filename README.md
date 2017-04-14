@@ -2,7 +2,7 @@
 
 This is a simple plugin that does exactly one thing:
 
-***Creates triggers that fire when ANY of a selected group of Devices and/or Variables has ANY change.***
+***Creates triggers that fire when a selected group of Devices and/or Variables has any change.***
 
 (More accurately, the trigger will fire when any of the devices' ***states*** or any of the variables' ***values*** change. Changes to properties will be ignored.)
 
@@ -12,7 +12,7 @@ berkinet's plugins are here: http://forums.indigodomo.com/viewforum.php?f=22
 
 ### Background
 
-It's pretty common to want indigo to take some action or track some status based on multiple 'inputs'.  As a simple example, I have a bug zapper that I want ON when this condition is met (and OFF otherwise):
+It's pretty common to want Indigo to take some action or track some status based on multiple 'inputs'.  As a simple example, I have a bug zapper that I want ON when this condition is met (and OFF otherwise):
 
 `(not isRaining) AND (zapperScheduledHours OR ((houseMode == 'outside') AND (not isDaylight)))`
 
