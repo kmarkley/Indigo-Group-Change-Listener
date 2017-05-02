@@ -115,39 +115,13 @@ class Plugin(indigo.PluginBase):
     # Variable or Device updated
     #-------------------------------------------------------------------------------
     def variableUpdated(self, oldVar, newVar):
-        if newVar.value != oldVar.value:    # ignore property changes
-            for tid, listener in self.triggersDict.items():
-                if newVar.id in listener.varList:
-                    self.logger.debug("variableUpdated: "+newVar.name)
-                    listener.saveToVariable(newVar.name)
-                    indigo.trigger.execute(tid)
+        for tid, listener in self.triggersDict.items():
+            listener.variableUpdated(oldVar, newVar)
     
     #-------------------------------------------------------------------------------
     def deviceUpdated(self, oldDev, newDev):
-            for tid, listener in self.triggersDict.items():
-                if newDev.id in listener.devList:
-                    fireTrigger = False
-                    
-                    if listener.advanced:
-                        for key in newDev.states:
-                            if newDev.states[key] != oldDev.states.get(key,None):
-                                if (listener.logic == "Ignore") and (key not in listener.filter):
-                                    fireTrigger = True
-                                    break
-                                elif (listener.logic == "Require") and (key in listener.filter):
-                                    fireTrigger = True
-                                    break
-                        if listener.comm:
-                            if newDev.enabled != oldDev.enabled:
-                                fireTrigger = True
-                    else:
-                        if newDev.states != oldDev.states:
-                            fireTrigger = True
-                    
-                    if  fireTrigger:
-                        self.logger.debug("deviceUpdated: "+newDev.name)
-                        listener.saveToVariable(newDev.name)
-                        indigo.trigger.execute(tid)
+        for tid, listener in self.triggersDict.items():
+            listener.deviceUpdated(oldDev, newDev)
     
     
     #-------------------------------------------------------------------------------
@@ -241,6 +215,7 @@ class Plugin(indigo.PluginBase):
         #-------------------------------------------------------------------------------
         def __init__(self, instance, plugin):
             self.trigger    = instance
+            self.id         = instance.id
             self.name       = instance.name
             
             self.plugin     = plugin
@@ -261,13 +236,48 @@ class Plugin(indigo.PluginBase):
                 self.varList.append(int(varId))
         
         #-------------------------------------------------------------------------------
+        def variableUpdated(self, oldVar, newVar):
+            if newVar.id in self.varList:
+                if newVar.value != oldVar.value:    # ignore property changes
+                    self.logger.debug("variableUpdated: "+newVar.name)
+                    self.saveToVariable(newVar.name)
+                    indigo.trigger.execute(self.id)
+        
+        #-------------------------------------------------------------------------------
+        def deviceUpdated(self, oldDev, newDev):
+            if newDev.id in self.devList:
+                fireTrigger = False
+                
+                if self.advanced:
+                    for key in newDev.states:
+                        if newDev.states[key] != oldDev.states.get(key,None):
+                            if (self.logic == "Ignore") and (key not in self.filter):
+                                fireTrigger = True
+                                break
+                            elif (self.logic == "Require") and (key in self.filter):
+                                fireTrigger = True
+                                break
+                    if self.comm:
+                        if newDev.enabled != oldDev.enabled:
+                            fireTrigger = True
+                else:
+                    if newDev.states != oldDev.states:
+                        fireTrigger = True
+                
+                if  fireTrigger:
+                    self.logger.debug("deviceUpdated: "+newDev.name)
+                    self.saveToVariable(newDev.name)
+                    indigo.trigger.execute(self.id)
+        
+        #-------------------------------------------------------------------------------
         def saveToVariable(self, name):
             if self.saveId:
                 try:
                     indigo.variable.updateValue(self.saveId, name)
                 except:
                     self.logger.error("Trigger could not be saved to Indigo variable id '%s'. Does it exist?" % self.saveId)
-            
+        
+    
 ################################################################################
 # Utilities
 ################################################################################
