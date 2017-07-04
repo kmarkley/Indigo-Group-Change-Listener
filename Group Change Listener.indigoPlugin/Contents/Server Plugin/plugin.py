@@ -4,6 +4,8 @@
 # http://www.indigodomo.com
 
 import indigo
+import time
+from ghpu import GitHubPluginUpdater
 
 # Note the "indigo" module is automatically imported and made available inside
 # our global name space by the host process.
@@ -22,20 +24,24 @@ defaultProps = {
     'saveVar'           : "",
     }
 
+k_updateCheckHours = 24
+
 ################################################################################
 class Plugin(indigo.PluginBase):
     #-------------------------------------------------------------------------------
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
-    
+        self.updater = GitHubPluginUpdater(self)
+
     #-------------------------------------------------------------------------------
     def __del__(self):
         indigo.PluginBase.__del__(self)
-    
+
     #-------------------------------------------------------------------------------
     # Start, Stop and Config changes
     #-------------------------------------------------------------------------------
     def startup(self):
+        self.nextCheck = self.pluginPrefs.get('nextUpdateCheck',0)
         self.debug = self.pluginPrefs.get("showDebugInfo",False)
         self.logger.debug(u"startup")
         if self.debug:
@@ -43,12 +49,13 @@ class Plugin(indigo.PluginBase):
         self.triggersDict = dict()
         indigo.devices.subscribeToChanges()
         indigo.variables.subscribeToChanges()
-    
+
     #-------------------------------------------------------------------------------
     def shutdown(self):
         self.logger.debug("shutdown")
+        self.pluginPrefs['nextUpdateCheck'] = self.nextCheck
         self.pluginPrefs['showDebugInfo'] = self.debug
-    
+
     #-------------------------------------------------------------------------------
     def closedPrefsConfigUi (self, valuesDict, userCancelled):
         self.logger.debug("closedPrefsConfigUi")
@@ -56,30 +63,18 @@ class Plugin(indigo.PluginBase):
             self.debug = valuesDict.get("showDebugInfo",False)
             if self.debug:
                 self.logger.debug("Debug logging enabled")
-    
+
     #-------------------------------------------------------------------------------
-    def validateEventConfigUi(self, valuesDict, typeId, triggerId):
-        self.logger.debug("validateTriggerConfigUi")
-        errorsDict = indigo.Dict()
-        
-        if valuesDict.get('advanced',True):
-            if (valuesDict.get('stateFilter',[])) and (not valuesDict.get('filterLogic',False)):
-                errorsDict['filterLogic'] = "Required when state filters are defined"
-            elif (not valuesDict.get('stateFilter',[])) and (valuesDict.get('filterLogic',"") == "Require"):
-                errorsDict['stateFilter'] = "Required when filter logic is 'Require One'"
-        
-        if valuesDict.get('saveBool',False):
-            if not valuesDict.get('saveVar',""):
-                errorsDict['saveVar'] = "Required when 'Save to variable?' is checked"
-            elif valuesDict.get('saveVar') in valuesDict.get('triggerVariables',[]):
-                errorsDict['saveVar'] = "Can't save to a variable being monitored"
-        
-        if len(errorsDict) > 0:
-            return (False, valuesDict, errorsDict)
-        else:
-            valuesDict['version'] = self.pluginVersion
-            return (True, valuesDict)
-    
+    def runConcurrentThread(self):
+        self.logger.debug("runConcurrentThread")
+        try:
+            while True:
+                if time.time() > self.nextCheck:
+                    self.checkForUpdates()
+                self.sleep(600)
+        except self.StopThread:
+            pass    # Optionally catch the StopThread exception and do any needed cleanup.
+
     #-------------------------------------------------------------------------------
     # Trigger Handlers
     #-------------------------------------------------------------------------------
@@ -88,42 +83,65 @@ class Plugin(indigo.PluginBase):
         if trigger.pluginProps.get('version','') != self.pluginVersion:
             self.updateTriggerVersion(trigger)
         self.triggersDict[trigger.id] = self.Listener(trigger, self)
-    
+
     #-------------------------------------------------------------------------------
     def triggerStopProcessing(self, trigger):
         self.logger.debug("triggerStopProcessing: "+trigger.name)
         if trigger.id in self.triggersDict:
             del self.triggersDict[trigger.id]
-    
+
     #-------------------------------------------------------------------------------
     def updateTriggerVersion(self, trigger):
         theProps = trigger.pluginProps
-        
+
         for key in defaultProps:
             if key not in theProps:
                 theProps[key] = defaultProps[key]
-        
+
         # older versions stored 'stateFilter' as a string
         if isinstance(theProps.get('stateFilter',[]), basestring):
             theProps['stateFilter'] = theProps['stateFilter'].split()
             theProps['stateFilter'] = [s[:-1] if s[-1]=="," else s for s in theProps['stateFilter']]
-                
+
         if theProps != trigger.pluginProps:
             trigger.replacePluginPropsOnServer(theProps)
-    
+
+    #-------------------------------------------------------------------------------
+    def validateEventConfigUi(self, valuesDict, typeId, triggerId):
+        self.logger.debug("validateTriggerConfigUi")
+        errorsDict = indigo.Dict()
+
+        if valuesDict.get('advanced',True):
+            if (valuesDict.get('stateFilter',[])) and (not valuesDict.get('filterLogic',False)):
+                errorsDict['filterLogic'] = "Required when state filters are defined"
+            elif (not valuesDict.get('stateFilter',[])) and (valuesDict.get('filterLogic',"") == "Require"):
+                errorsDict['stateFilter'] = "Required when filter logic is 'Require One'"
+
+        if valuesDict.get('saveBool',False):
+            if not valuesDict.get('saveVar',""):
+                errorsDict['saveVar'] = "Required when 'Save to variable?' is checked"
+            elif valuesDict.get('saveVar') in valuesDict.get('triggerVariables',[]):
+                errorsDict['saveVar'] = "Can't save to a variable being monitored"
+
+        if len(errorsDict) > 0:
+            return (False, valuesDict, errorsDict)
+        else:
+            valuesDict['version'] = self.pluginVersion
+            return (True, valuesDict)
+
     #-------------------------------------------------------------------------------
     # Variable or Device updated
     #-------------------------------------------------------------------------------
     def variableUpdated(self, oldVar, newVar):
         for tid, listener in self.triggersDict.items():
             listener.variableUpdated(oldVar, newVar)
-    
+
     #-------------------------------------------------------------------------------
     def deviceUpdated(self, oldDev, newDev):
         for tid, listener in self.triggersDict.items():
             listener.deviceUpdated(oldDev, newDev)
-    
-    
+
+
     #-------------------------------------------------------------------------------
     # Menu methods
     #-------------------------------------------------------------------------------
@@ -132,22 +150,22 @@ class Plugin(indigo.PluginBase):
         if not myTriggers:
             self.logger.info("No triggers configured")
             return
-        
+
         separator   = "".rjust(50,'-')
         width       = 10
         str_name_id = "{p:>{w}} {n} [{i}]".format
         str_missing = "{p:>{w}} [{i}] (missing)".format
         str_value   = "{p:>{w}} {v}".format
-        
+
         self.logger.info("")
         self.logger.info("List all triggers:")
         self.logger.info(separator)
         for trigger in myTriggers:
             listener = self.Listener(trigger, self)
-            
+
             self.logger.info(str_name_id(w=width, p="Trigger:", n=trigger.name, i=trigger.id))
             self.logger.info(str_value(w=width, p="Enabled:", v=trigger.enabled))
-            
+
             prefix = "Variables:"
             for varId in listener.varList:
                 try:
@@ -155,7 +173,7 @@ class Plugin(indigo.PluginBase):
                 except:
                     self.logger.error(str_missing(w=width, p=prefix, i=varId))
                 prefix = ""
-            
+
             prefix = "Devices:"
             for devId in listener.devList:
                 try:
@@ -163,7 +181,7 @@ class Plugin(indigo.PluginBase):
                 except:
                     self.logger.error(str_missing(w=width, p=prefix, i=devId))
                 prefix = ""
-            
+
             if listener.advanced:
                 self.logger.info(str_value(w=width, p="Logic:", v=listener.logic))
                 prefix = "Filter:"
@@ -171,7 +189,7 @@ class Plugin(indigo.PluginBase):
                     self.logger.info(str_value(w=width, p=prefix, v=state))
                     prefix = ""
                 self.logger.info(str_value(w=width, p="Status:", v=listener.comm))
-            
+
             if listener.saveId:
                 prefix = "Save To:"
                 try:
@@ -179,10 +197,23 @@ class Plugin(indigo.PluginBase):
                     self.logger.info(str_name_id(w=width, p=prefix, n=var.name, i=var.id))
                 except:
                     self.logger.error(str_missing(w=width, p=prefix, i=var.id))
-            
+
             self.logger.info(separator)
         self.logger.info("")
-    
+
+    #-------------------------------------------------------------------------------
+    def checkForUpdates(self):
+        self.updater.checkForUpdate()
+        self.nextCheck = time.time() + k_updateCheckHours*60*60
+
+    #-------------------------------------------------------------------------------
+    def updatePlugin(self):
+        self.updater.update()
+
+    #-------------------------------------------------------------------------------
+    def forceUpdate(self):
+        self.updater.update(currentVersion='0.0.0')
+
     #-------------------------------------------------------------------------------
     def toggleDebug(self):
         if self.debug:
@@ -191,7 +222,7 @@ class Plugin(indigo.PluginBase):
         else:
             self.debug = True
             self.logger.debug("Debug logging enabled")
-    
+
     #-------------------------------------------------------------------------------
     # Callbacks
     #-------------------------------------------------------------------------------
@@ -201,26 +232,26 @@ class Plugin(indigo.PluginBase):
             for state in indigo.devices[int(devId)].states:
                 stateList.append((state,state))
         return sorted(set(stateList))
-    
+
     #-------------------------------------------------------------------------------
     def loadStates(self, valuesDict=None, typeId='', targetId=0):
         pass
-    
-    
+
+
     ################################################################################
     # Classes
     ################################################################################
     class Listener(object):
-        
+
         #-------------------------------------------------------------------------------
         def __init__(self, instance, plugin):
             self.trigger    = instance
             self.id         = instance.id
             self.name       = instance.name
-            
+
             self.plugin     = plugin
             self.logger     = plugin.logger
-            
+
             self.saveId     = zint(instance.pluginProps.get('saveVar',0))
             self.advanced   = instance.pluginProps.get('advanced',True)
             self.filter     = instance.pluginProps.get('stateFilter',[])
@@ -230,11 +261,11 @@ class Plugin(indigo.PluginBase):
             self.devList = []
             for devId in instance.pluginProps.get('triggerDevices',[]):
                 self.devList.append(int(devId))
-            
+
             self.varList = []
             for varId in instance.pluginProps.get('triggerVariables',[]):
                 self.varList.append(int(varId))
-        
+
         #-------------------------------------------------------------------------------
         def variableUpdated(self, oldVar, newVar):
             if newVar.id in self.varList:
@@ -242,12 +273,12 @@ class Plugin(indigo.PluginBase):
                     self.logger.debug("variableUpdated: "+newVar.name)
                     self.saveToVariable(newVar.name)
                     indigo.trigger.execute(self.id)
-        
+
         #-------------------------------------------------------------------------------
         def deviceUpdated(self, oldDev, newDev):
             if newDev.id in self.devList:
                 fireTrigger = False
-                
+
                 if self.advanced:
                     for key in newDev.states:
                         if newDev.states[key] != oldDev.states.get(key,None):
@@ -263,12 +294,12 @@ class Plugin(indigo.PluginBase):
                 else:
                     if newDev.states != oldDev.states:
                         fireTrigger = True
-                
+
                 if  fireTrigger:
                     self.logger.debug("deviceUpdated: "+newDev.name)
                     self.saveToVariable(newDev.name)
                     indigo.trigger.execute(self.id)
-        
+
         #-------------------------------------------------------------------------------
         def saveToVariable(self, name):
             if self.saveId:
@@ -276,8 +307,8 @@ class Plugin(indigo.PluginBase):
                     indigo.variable.updateValue(self.saveId, name)
                 except:
                     self.logger.error("Trigger could not be saved to Indigo variable id '%s'. Does it exist?" % self.saveId)
-        
-    
+
+
 ################################################################################
 # Utilities
 ################################################################################
