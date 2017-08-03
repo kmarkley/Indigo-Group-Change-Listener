@@ -2,7 +2,7 @@
 
 This is a simple plugin that does exactly one thing:
 
-***Creates triggers that fire when a selected group of Devices and/or Variables has any change.***
+***Creates triggers that fire when any of a selected group of Devices and/or Variables has any change.***
 
 (More accurately, the trigger will fire when any of the devices' ***states*** or any of the variables' ***values*** change. Changes to properties will be ignored.)
 
