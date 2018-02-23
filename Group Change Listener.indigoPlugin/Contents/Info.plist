@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>PluginVersion</key>
-	<string>0.0.7</string>
+	<string>0.0.8</string>
 	<key>ServerApiVersion</key>
 	<string>2.0</string>
 	<key>IwsApiVersion</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.morris.group-change-listener</string>
 	<key>CFBundleVersion</key>
-	<string>1.0.0</string>
+	<string>1.0.1</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -23,5 +23,12 @@
 			<string>https://github.com/kmarkley/Indigo-Group-Change-Listener</string>
 		</dict>
 	</array>
+	<key>GithubInfo</key>
+	<dict>
+		<key>GithubRepo</key>
+		<string>Indigo-Group-Change-Listener</string>
+		<key>GithubUser</key>
+		<string>kmarkley</string>
+	</dict>
 </dict>
 </plist>
