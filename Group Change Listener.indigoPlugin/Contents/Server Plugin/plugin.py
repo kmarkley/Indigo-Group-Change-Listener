@@ -82,7 +82,7 @@ class Plugin(indigo.PluginBase):
                 theProps[key] = defaultProps[key]
 
         # older versions stored 'stateFilter' as a string
-        if isinstance(theProps.get('stateFilter',[]), basestring):
+        if isinstance(theProps.get('stateFilter',[]), str):
             theProps['stateFilter'] = theProps['stateFilter'].split()
             theProps['stateFilter'] = [s[:-1] if s[-1]=="," else s for s in theProps['stateFilter']]
 
@@ -105,6 +105,8 @@ class Plugin(indigo.PluginBase):
                 errorsDict['saveVar'] = "Required when 'Save to variable?' is checked"
             elif valuesDict.get('saveVar') in valuesDict.get('triggerVariables',[]):
                 errorsDict['saveVar'] = "Can't save to a variable being monitored"
+        else:
+            valuesDict['saveVar'] = 0
 
         if len(errorsDict) > 0:
             return (False, valuesDict, errorsDict)
@@ -173,10 +175,10 @@ class Plugin(indigo.PluginBase):
                     prefix = ""
                 self.logger.info(str_value(w=width, p="Status:", v=listener.comm))
 
-            if listener.saveId:
+            if listener.saveVar:
                 prefix = "Save To:"
                 try:
-                    var = indigo.variables[listener.saveId]
+                    var = indigo.variables[listener.saveVar]
                     self.logger.info(str_name_id(w=width, p=prefix, n=var.name, i=var.id))
                 except:
                     self.logger.error(str_missing(w=width, p=prefix, i=var.id))
@@ -222,7 +224,8 @@ class Plugin(indigo.PluginBase):
             self.plugin     = plugin
             self.logger     = plugin.logger
 
-            self.saveId     = zint(instance.pluginProps.get('saveVar',0))
+            self.saveVar     = zint(instance.pluginProps.get('saveVar',0))
+            self.saveType   = instance.pluginProps.get('saveType','name')
             self.advanced   = instance.pluginProps.get('advanced',True)
             self.filter     = instance.pluginProps.get('stateFilter',[])
             self.logic      = instance.pluginProps.get('filterLogic',"Ignore")
@@ -241,7 +244,7 @@ class Plugin(indigo.PluginBase):
             if newVar.id in self.varList:
                 if newVar.value != oldVar.value:    # ignore property changes
                     self.logger.debug("variableUpdated: "+newVar.name)
-                    self.saveToVariable(newVar.name)
+                    self.saveToVariable(newVar)
                     indigo.trigger.execute(self.id)
 
         #-------------------------------------------------------------------------------
@@ -267,16 +270,20 @@ class Plugin(indigo.PluginBase):
 
                 if  fireTrigger:
                     self.logger.debug("deviceUpdated: "+newDev.name)
-                    self.saveToVariable(newDev.name)
+                    self.saveToVariable(newDev)
                     indigo.trigger.execute(self.id)
 
         #-------------------------------------------------------------------------------
-        def saveToVariable(self, name):
-            if self.saveId:
+        def saveToVariable(self, item):
+            if self.saveVar:
+                if self.saveType == 'id':
+                    value = str(item.id)
+                else:
+                    value = item.name
                 try:
-                    indigo.variable.updateValue(self.saveId, name)
+                    indigo.variable.updateValue(self.saveVar, value)
                 except:
-                    self.logger.error("Trigger could not be saved to Indigo variable id '%s'. Does it exist?" % self.saveId)
+                    self.logger.error("Trigger could not be saved to Indigo variable id '%s'. Does it exist?" % self.saveVar)
 
 
 ################################################################################

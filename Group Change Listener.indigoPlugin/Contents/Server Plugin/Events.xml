@@ -2,7 +2,7 @@
 <Events>
 	<Event type='custom' id='listenerGroup'>
 		<Name>Listener Group</Name>
-		<ConfigUI>	
+		<ConfigUI>
 			<Field id='label1' type='label' >
 				<Label>Select the Variables(s) and/or Devices(s) to listen to for the Trigger:
 				</Label>
@@ -47,12 +47,19 @@
             <Field id='separator3' type='separator'/>
 			<Field id='saveBool' type='checkbox'>
 			    <Label>Save to variable:</Label>
-			    <Description>Save the name of the last triggering device/variable to a variable?   </Description>
+			    <Description>Save the last triggering device/variable to a variable?   </Description>
+			</Field>
+			<Field id='saveType' type='menu' defaultValue='name' visibleBindingId='saveBool'  visibleBindingValue='true' alwaysUseInDialogHeightCalc='true'>
+				<Label>Save Value:</Label>
+				<List>
+					<Option value='name'>Device Name</Option>
+					<Option value='id'>Device ID</Option>
+				</List>
 			</Field>
 			<Field id='saveVar' type='menu' visibleBindingId='saveBool'  visibleBindingValue='true' alwaysUseInDialogHeightCalc='true'>
 				<Label>Select Variable:</Label>
 				<List class='indigo.variables' />
 			</Field>
 		</ConfigUI>
-	</Event>	
+	</Event>
 </Events>
